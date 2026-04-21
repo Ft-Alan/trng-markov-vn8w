@@ -1,101 +1,63 @@
-# Markov-Based TRNG Post-Processing with VN8W Debiasing
+# Markov-Based TRNG Post-Processing with VN8W
 
-## Overview
+## Problem
 
-This project implements a post-processing architecture for improving the statistical randomness of a binary bitstream. A Markov-based conditioning stage is combined with an 8-bit Von Neumann extractor (VN8W) to reduce bias and temporal correlation.
+Random bitstreams often exhibit correlation between consecutive bits, reducing randomness quality even when bias is addressed.
 
-The design is behavioral and intended for simulation-based analysis of randomness characteristics.
+## Approach
 
----
+A Markov-based conditioning stage is used to decorrelate the input stream by separating bits based on the previous state.
+The conditioned data is grouped into 8-bit words and processed using a VN8W debiasing block.
 
 ## Architecture
 
-Input Bitstream → Markov Conditioning → 8-bit Word Formation → VN8W Debiasing → Output Bitstream
-
----
+```
+Input Bitstream
+        ↓
+Previous Bit Register
+        ↓
+State-Based Split (Markov Conditioning)
+     ↓              ↓
+   Queue0         Queue1
+     ↓              ↓
+   8-bit          8-bit
+   Words          Words
+        \        /
+         ↓      ↓
+       VN8W Debiasing
+            ↓
+        FIFO Buffer
+         ↓      ↓
+      Output   Wait Output
+```
 
 ## Key Features
 
 * Markov-based decorrelation using previous-bit conditioning
-* Dual-queue buffering for state-dependent processing
+* Dual-queue architecture (state-dependent buffering)
 * 8-bit batch processing for efficient extraction
-* VN8W debiasing with primary and secondary (waiting) outputs
-* Modular Verilog design
+* VN8W debiasing with FIFO-based output handling
 
----
+## Results
 
-## Design Details
+* Reduced correlation between consecutive bits
+* Improved statistical randomness of output
+* Buffered architecture handles variable output rate
 
-### Markov Conditioning (MKV1)
+## Key Insight
 
-* Input stream is conditioned based on the previous bit
-* Bits are separated into two queues:
+Improving randomness requires addressing both:
 
-  * `q0`: previous bit = 0
-  * `q1`: previous bit = 1
-* Reduces temporal correlation by state-based grouping
+* Bias (Von Neumann extraction)
+* Correlation (Markov conditioning)
 
----
+## Note
 
-### Word Formation
-
-* Bits from each queue are grouped into 8-bit words
-* Words are sent to VN8W when a queue is filled
-
----
-
-### VN8W Debiasing
-
-* Processes 8-bit input words as 2-bit pairs
-* Pair mapping:
-
-  * `01 → 1`
-  * `10 → 0`
-  * `00 / 11 → discarded`
-* Uses FIFO buffering:
-
-  * Primary FIFO for output
-  * Secondary FIFO for overflow handling
-
----
-
-## Outputs
-
-* `DOUT`, `DVALID` → primary debiased output
-* `DOUT_WAIT`, `DVALID_WAIT` → buffered output when primary FIFO is full
-
----
-
-## Simulation
-
-* Tested using a behavioral testbench with random input stream
-* Demonstrates:
-
-  * State-based bit separation
-  * Batch processing behavior
-  * Debiased output generation
-
----
-
-## Key Learnings
-
-* Raw random streams may exhibit correlation between consecutive bits
-* Markov-based conditioning helps reduce dependency
-* Post-processing improves statistical randomness but introduces latency
-* Buffering is required for handling variable output rates
-
----
-
-## Note on Implementation
-
-This design is implemented using behavioral constructs and is intended for simulation and architectural exploration. It is not optimized for synthesis.
-
----
+This design is implemented as a behavioral model for simulation and architectural exploration.
+It is not optimized for synthesis.
 
 ## Future Work
 
 * Add statistical evaluation (transition probability, autocorrelation)
-* Compare with simpler Von Neumann implementations
-* Explore synthesizable architectures for hardware deployment
-
----
+* Compare with simpler VN-based approaches
+* Explore synthesizable hardware implementations
